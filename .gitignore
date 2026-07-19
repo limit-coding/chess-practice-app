@@ -1,0 +1,3 @@
+.claude/settings.local.json
+native/wrapper/build*/
+.DS_Store
