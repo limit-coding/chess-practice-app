@@ -253,6 +253,7 @@ class _PositionPreview extends StatelessWidget {
               boardSize: game.boardSize,
               board: game.board,
               lastMove: (playedMove.x, playedMove.y),
+              hintMove: canHint ? hint : null,
             ),
           ),
         ),
@@ -262,7 +263,10 @@ class _PositionPreview extends StatelessWidget {
             child: Row(
               children: [
                 Expanded(
-                  child: Text('引擎推荐: (${hint.$1},${hint.$2})，实际下在 (${playedMove.x},${playedMove.y})'),
+                  child: Text(
+                    '引擎推荐: (${hint.$1},${hint.$2})（棋盘上蓝色虚线圈），'
+                    '实际下在 (${playedMove.x},${playedMove.y})',
+                  ),
                 ),
                 FilledButton(
                   onPressed: resuming ? null : () => onContinueFromHint(ply, hint),

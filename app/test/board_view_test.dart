@@ -56,4 +56,23 @@ void main() {
 
     expect(tapped, (3, 10));
   });
+
+  testWidgets('renders a hint marker without crashing', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: Center(
+        child: SizedBox(
+          width: 300,
+          height: 300,
+          child: BoardView(
+            boardSize: 15,
+            board: _emptyBoard(15),
+            lastMove: const (5, 5),
+            hintMove: const (8, 6),
+          ),
+        ),
+      ),
+    ));
+
+    expect(find.byType(BoardView), findsOneWidget);
+  });
 }

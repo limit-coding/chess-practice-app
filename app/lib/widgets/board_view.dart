@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../game/stone.dart';
@@ -14,6 +16,7 @@ class BoardView extends StatelessWidget {
     required this.board,
     this.lastMove,
     this.winningLine = const [],
+    this.hintMove,
     this.onTapCell,
   });
 
@@ -21,6 +24,11 @@ class BoardView extends StatelessWidget {
   final List<List<Stone?>> board;
   final (int, int)? lastMove;
   final List<(int, int)> winningLine;
+
+  /// Drawn as a dashed "ghost" stone — used by the review page to point out
+  /// where an engine-recommended move is, since a bare "(8,6)" coordinate
+  /// isn't easy to place on the board by eye.
+  final (int, int)? hintMove;
   final void Function(int x, int y)? onTapCell;
 
   /// Maps a tap position within a board of [side] logical pixels to the
@@ -53,6 +61,7 @@ class BoardView extends StatelessWidget {
                 board: board,
                 lastMove: lastMove,
                 winningLine: winningLine,
+                hintMove: hintMove,
               ),
             ),
           ),
@@ -68,12 +77,14 @@ class _BoardPainter extends CustomPainter {
     required this.board,
     required this.lastMove,
     required this.winningLine,
+    required this.hintMove,
   });
 
   final int boardSize;
   final List<List<Stone?>> board;
   final (int, int)? lastMove;
   final List<(int, int)> winningLine;
+  final (int, int)? hintMove;
 
   static const _boardColor = Color(0xFFDCB35C);
   static const _lineColor = Color(0xFF3E2A15);
@@ -141,12 +152,38 @@ class _BoardPainter extends CustomPainter {
         Paint()..color = Colors.redAccent,
       );
     }
+
+    if (hintMove != null) {
+      _drawDashedCircle(
+        canvas,
+        _center(hintMove!.$1, hintMove!.$2, cell),
+        stoneRadius,
+        Paint()
+          ..color = Colors.blueAccent
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.5,
+      );
+    }
+  }
+
+  /// A hollow, dashed ring — a "ghost stone" marking a recommended-but-not-
+  /// played move, visually distinct from the solid filled stones.
+  void _drawDashedCircle(Canvas canvas, Offset center, double radius, Paint paint) {
+    const dashCount = 14;
+    const dashFraction = 0.6; // fraction of each segment that's drawn vs gap
+    const anglePerDash = 2 * math.pi / dashCount;
+    final sweep = anglePerDash * dashFraction;
+    final rect = Rect.fromCircle(center: center, radius: radius);
+    for (var i = 0; i < dashCount; i++) {
+      canvas.drawArc(rect, i * anglePerDash, sweep, false, paint);
+    }
   }
 
   @override
   bool shouldRepaint(covariant _BoardPainter oldDelegate) {
     return oldDelegate.board != board ||
         oldDelegate.lastMove != lastMove ||
-        oldDelegate.winningLine != winningLine;
+        oldDelegate.winningLine != winningLine ||
+        oldDelegate.hintMove != hintMove;
   }
 }
