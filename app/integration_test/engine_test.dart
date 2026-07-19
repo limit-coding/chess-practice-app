@@ -52,4 +52,29 @@ void main() {
         reason: '引擎应答不应报错');
     expect(find.textContaining('未响应'), findsNothing, reason: '引擎不应超时未响应');
   });
+
+  testWidgets('letting the engine open the game plays its first move via FFI',
+      (tester) async {
+    await tester.pumpWidget(const ChessPracticeApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('简单'));
+    await tester.pump();
+    await tester.tap(find.text('AI先手'));
+    await tester.pump();
+
+    await tester.tap(find.text('开始对局'));
+    await _waitUntil(
+      tester,
+      () =>
+          find.text('轮到你落子（白棋）').evaluate().isNotEmpty ||
+          find.textContaining('引擎错误').evaluate().isNotEmpty ||
+          find.textContaining('未响应').evaluate().isNotEmpty,
+    );
+
+    expect(find.textContaining('引擎错误'), findsNothing, reason: '引擎开局不应报错');
+    expect(find.textContaining('未响应'), findsNothing, reason: '引擎开局不应超时');
+    expect(find.text('轮到你落子（白棋）'), findsOneWidget,
+        reason: 'AI 先手落子后应该轮到玩家（执白）落子');
+  });
 }

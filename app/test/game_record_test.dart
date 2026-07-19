@@ -44,4 +44,35 @@ void main() {
     final listed = await store.listGames();
     expect(listed.map((f) => f.path), contains(file.path));
   });
+
+  test('humanStone round-trips through save/load, defaulting to black', () async {
+    final tempDir = await Directory.systemTemp.createTemp('game_record_test');
+    addTearDown(() => tempDir.delete(recursive: true));
+    final store = GameRecordStore(documentsDirOverride: () async => tempDir);
+
+    final game = GomokuGame(boardSize: 15)..play(7, 7);
+    final record = GameRecord.fromGame(
+      game,
+      difficulty: Difficulty.easy,
+      startedAt: DateTime(2026, 7, 19),
+      humanStone: Stone.white,
+    );
+
+    expect(record.humanStone, Stone.white);
+    final file = await store.save(record);
+    final loaded = await store.load(file);
+    expect(loaded.humanStone, Stone.white);
+  });
+
+  test('a saved-before-this-field JSON blob defaults humanStone to black', () {
+    final json = {
+      'boardSize': 15,
+      'difficulty': 'normal',
+      'startedAt': DateTime(2026, 7, 19).toIso8601String(),
+      'winner': null,
+      'moves': <dynamic>[],
+      // no 'humanStone' key — matches records saved before this field existed
+    };
+    expect(GameRecord.fromJson(json).humanStone, Stone.black);
+  });
 }

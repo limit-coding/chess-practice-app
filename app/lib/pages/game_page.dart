@@ -1,5 +1,5 @@
-// Phase 1 MVP: human (black, moves first) vs Rapfi engine (white) on a
-// 15x15 board, with difficulty selection and per-game persistence.
+// Phase 1 MVP: human vs Rapfi engine on a 15x15 board, with difficulty
+// selection, choice of who moves first, and per-game persistence.
 import 'package:flutter/material.dart';
 
 import '../engine/rapfi_ffi.dart';
@@ -23,12 +23,16 @@ class _GamePageState extends State<GamePage> {
 
   GomokuGame? _game;
   Difficulty _difficulty = Difficulty.normal;
+  Stone _humanStone = Stone.black;
   DateTime? _startedAt;
   bool _busy = false;
   String? _status;
   GameRecord? _lastRecord;
 
   bool get _inGame => _game != null;
+
+  String _yourTurnStatus() =>
+      '轮到你落子（${_humanStone == Stone.black ? "黑棋" : "白棋"}）';
 
   Future<void> _startNewGame() async {
     setState(() {
@@ -40,19 +44,36 @@ class _GamePageState extends State<GamePage> {
       thinkMs: _difficulty.thinkMs,
       maxDepth: _difficulty.maxDepth,
     );
+
+    final game = GomokuGame(boardSize: _boardSize);
+    if (_humanStone == Stone.white) {
+      // Engine plays black and opens the game.
+      final (move, log) = await RapfiEngine.instance.engineOpens();
+      final errorLine = log.firstWhere((l) => l.startsWith('ERROR'), orElse: () => '');
+      if (move == null || !RegExp(r'^\d+,\d+$').hasMatch(move)) {
+        setState(() {
+          _busy = false;
+          _status = errorLine.isNotEmpty ? '引擎错误: $errorLine' : '引擎未响应（超时）';
+        });
+        return;
+      }
+      final parts = move.split(',');
+      game.play(int.parse(parts[0]), int.parse(parts[1]));
+    }
+
     setState(() {
-      _game = GomokuGame(boardSize: _boardSize);
+      _game = game;
       _startedAt = DateTime.now();
       _lastRecord = null;
       _busy = false;
-      _status = '轮到你落子（黑棋）';
+      _status = _yourTurnStatus();
     });
   }
 
   Future<void> _onTapCell(int x, int y) async {
     final game = _game;
     if (game == null || _busy || game.isOver) return;
-    if (game.turn != Stone.black) return; // engine's turn
+    if (game.turn != _humanStone) return; // engine's turn
     if (!game.canPlay(x, y)) return;
 
     setState(() {
@@ -87,7 +108,7 @@ class _GamePageState extends State<GamePage> {
     setState(() {
       game.play(ex, ey);
       _busy = false;
-      _status = game.isOver ? null : '轮到你落子（黑棋）';
+      _status = game.isOver ? null : _yourTurnStatus();
     });
 
     if (game.isOver) await _finishGame();
@@ -99,14 +120,14 @@ class _GamePageState extends State<GamePage> {
       game,
       difficulty: _difficulty,
       startedAt: _startedAt!,
+      humanStone: _humanStone,
     );
     await _store.save(record);
     setState(() {
       _lastRecord = record;
       _status = switch (game.winner) {
-        Stone.black => '你赢了！',
-        Stone.white => '引擎赢了。',
         null => '平局。',
+        final w => w == _humanStone ? '你赢了！' : '引擎赢了。',
       };
     });
   }
@@ -121,10 +142,11 @@ class _GamePageState extends State<GamePage> {
     setState(() {
       _game = result.game;
       _difficulty = record.difficulty;
+      _humanStone = record.humanStone;
       _startedAt = DateTime.now();
       _lastRecord = null;
       _busy = false;
-      _status = '轮到你落子（黑棋）';
+      _status = _yourTurnStatus();
     });
   }
 
@@ -138,12 +160,19 @@ class _GamePageState extends State<GamePage> {
           padding: const EdgeInsets.all(12),
           child: Column(
             children: [
-              if (!_inGame) _DifficultyPicker(
-                value: _difficulty,
-                onChanged: _busy ? null : (d) => setState(() => _difficulty = d),
-              ),
+              if (!_inGame) ...[
+                _DifficultyPicker(
+                  value: _difficulty,
+                  onChanged: _busy ? null : (d) => setState(() => _difficulty = d),
+                ),
+                const SizedBox(height: 8),
+                _FirstMoverPicker(
+                  value: _humanStone,
+                  onChanged: _busy ? null : (s) => setState(() => _humanStone = s),
+                ),
+              ],
               const SizedBox(height: 8),
-              Text(_status ?? (_inGame ? '' : '选择难度后开始对局'),
+              Text(_status ?? (_inGame ? '' : '选择难度和先后手后开始对局'),
                   style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
               if (game != null)
@@ -201,6 +230,27 @@ class _GamePageState extends State<GamePage> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _FirstMoverPicker extends StatelessWidget {
+  const _FirstMoverPicker({required this.value, required this.onChanged});
+
+  final Stone value;
+  final ValueChanged<Stone>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SegmentedButton<Stone>(
+      segments: const [
+        ButtonSegment(value: Stone.black, label: Text('我先手')),
+        ButtonSegment(value: Stone.white, label: Text('AI先手')),
+      ],
+      selected: {value},
+      onSelectionChanged: onChanged == null
+          ? null
+          : (s) => onChanged!(s.first),
     );
   }
 }

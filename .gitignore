@@ -5,3 +5,4 @@ native/wrapper/.cache/
 native/wrapper/pikafish.nnue
 native/pikafish/src/pikafish.nnue
 app/assets/pikafish.nnue
+app/android/app/src/main/jniLibs/

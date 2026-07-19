@@ -8,6 +8,16 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# iOS/macOS link these statically into the Runner (see Rapfi.xcconfig).
+# Android has no such host binary to link into — Dart FFI loads each engine
+# as its own shared object via DynamicLibrary.open() (see rapfi_ffi.dart /
+# pikafish_ffi.dart's non-iOS branch), so it needs real .so files instead.
+if(ANDROID)
+    set(ENGINE_LIB_TYPE SHARED)
+else()
+    set(ENGINE_LIB_TYPE STATIC)
+endif()
+
 set(RAPFI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../rapfi/Rapfi)
 
 # CORE_SOURCES from Rapfi's own CMakeLists.txt, minus main.cpp (we provide our
@@ -56,7 +66,7 @@ add_subdirectory(${RAPFI_DIR}/external/cxxopts cxxopts)
 add_subdirectory(${RAPFI_DIR}/external/lz4 lz4)
 add_subdirectory(${RAPFI_DIR}/external/simde simde)
 
-add_library(rapfi_core STATIC ${RAPFI_CORE_SOURCES} rapfi_bridge.cpp)
+add_library(rapfi_core ${ENGINE_LIB_TYPE} ${RAPFI_CORE_SOURCES} rapfi_bridge.cpp)
 target_include_directories(rapfi_core
     PRIVATE ${RAPFI_DIR}
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
@@ -82,7 +92,7 @@ set(PIKAFISH_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../pikafish/src)
 file(GLOB_RECURSE PIKAFISH_ALL_SOURCES CONFIGURE_DEPENDS ${PIKAFISH_DIR}/*.cpp)
 list(FILTER PIKAFISH_ALL_SOURCES EXCLUDE REGEX "/(main|universal)/|/main\\.cpp$")
 
-add_library(pikafish_core STATIC ${PIKAFISH_ALL_SOURCES} pikafish_bridge.cpp)
+add_library(pikafish_core ${ENGINE_LIB_TYPE} ${PIKAFISH_ALL_SOURCES} pikafish_bridge.cpp)
 target_include_directories(pikafish_core
     PRIVATE ${PIKAFISH_DIR}
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

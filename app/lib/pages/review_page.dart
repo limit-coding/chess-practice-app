@@ -230,7 +230,7 @@ class _PositionPreview extends StatelessWidget {
     final mr = review.moveReviews.where((m) => m.ply == ply).firstOrNull;
     final beforeEval = review.evals[ply];
     final hint = beforeEval?.bestLine.isNotEmpty == true ? beforeEval!.bestLine.first : null;
-    final isHumanMove = playedMove.stone == Stone.black;
+    final isHumanMove = playedMove.stone == record.humanStone;
     final canHint = isHumanMove &&
         hint != null &&
         hint != (playedMove.x, playedMove.y) &&

@@ -17,6 +17,7 @@ class GameRecord {
     required this.startedAt,
     required this.moves,
     required this.winner,
+    this.humanStone = Stone.black,
   });
 
   final int boardSize;
@@ -25,10 +26,15 @@ class GameRecord {
   final List<MoveRecord> moves;
   final Stone? winner;
 
+  /// Which color the human played — black (moves first) unless the human
+  /// chose to let the engine open the game (step 1.3's "谁先手" option).
+  final Stone humanStone;
+
   factory GameRecord.fromGame(
     GomokuGame game, {
     required Difficulty difficulty,
     required DateTime startedAt,
+    Stone humanStone = Stone.black,
   }) =>
       GameRecord(
         boardSize: game.boardSize,
@@ -36,6 +42,7 @@ class GameRecord {
         startedAt: startedAt,
         moves: List.unmodifiable(game.moves),
         winner: game.winner,
+        humanStone: humanStone,
       );
 
   Map<String, dynamic> toJson() => {
@@ -43,6 +50,7 @@ class GameRecord {
         'difficulty': difficulty.name,
         'startedAt': startedAt.toIso8601String(),
         'winner': winner?.name,
+        'humanStone': humanStone.name,
         'moves': moves.map((m) => m.toJson()).toList(),
       };
 
@@ -53,6 +61,11 @@ class GameRecord {
         winner: json['winner'] == null
             ? null
             : Stone.values.byName(json['winner'] as String),
+        // Older saved games predate this field — they were always
+        // human-plays-black.
+        humanStone: json['humanStone'] == null
+            ? Stone.black
+            : Stone.values.byName(json['humanStone'] as String),
         moves: (json['moves'] as List)
             .map((m) => MoveRecord.fromJson(m as Map<String, dynamic>))
             .toList(),
