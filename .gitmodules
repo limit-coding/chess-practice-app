@@ -1,3 +1,6 @@
 [submodule "native/rapfi"]
 	path = native/rapfi
 	url = https://github.com/dhbloo/rapfi.git
+[submodule "native/pikafish"]
+	path = native/pikafish
+	url = https://github.com/official-pikafish/Pikafish.git

@@ -69,10 +69,12 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-  # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
-  #   - images/a_dot_ham.jpeg
+  # Pikafish's NNUE network weights (~50MB, fetched by
+  # native/scripts/fetch-pikafish-net.sh — not committed to git, see
+  # 开发日志.md 阶段 4). PikafishAssets.ensureNetworkFile() copies this into a
+  # writable path the engine can open at runtime.
+  assets:
+    - assets/pikafish.nnue
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

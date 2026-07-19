@@ -1,3 +1,7 @@
 .claude/settings.local.json
 native/wrapper/build*/
+native/wrapper/.cache/
 .DS_Store
+native/wrapper/pikafish.nnue
+native/pikafish/src/pikafish.nnue
+app/assets/pikafish.nnue
