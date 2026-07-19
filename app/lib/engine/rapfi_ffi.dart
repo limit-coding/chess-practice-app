@@ -73,8 +73,15 @@ class RapfiEngine {
     }
   }
 
-  /// Starts (or restarts) a game. Returns true when the engine answered OK.
-  Future<bool> startGame({int boardSize = 15, int thinkMs = 2000}) async {
+  /// Starts (or restarts) a game. [maxDepth] caps the search depth (engine
+  /// default is 99, effectively unlimited) — together with [thinkMs] this is
+  /// how difficulty levels are implemented. Returns true when the engine
+  /// answered OK.
+  Future<bool> startGame({
+    int boardSize = 15,
+    int thinkMs = 2000,
+    int maxDepth = 99,
+  }) async {
     if (!_started) {
       _b.start();
       _started = true;
@@ -82,6 +89,7 @@ class RapfiEngine {
     _send('START $boardSize');
     final (reply, _) = await _await();
     _send('INFO timeout_turn $thinkMs');
+    _send('INFO max_depth $maxDepth');
     return reply == 'OK';
   }
 

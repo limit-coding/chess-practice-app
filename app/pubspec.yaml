@@ -35,6 +35,15 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   ffi: ^2.2.0
+  path_provider: ^2.1.5
+
+dependency_overrides:
+  # path_provider_foundation >= 2.5 pulls in package:objective_c's native
+  # assets build hook, which shells out to `xcrun --show-sdk-path` inside
+  # Xcode's Run Script phase and silently breaks when that phase doesn't see
+  # the Xcode (not Command Line Tools) developer directory — see 开发日志.md
+  # 坑1. Pin to the last Cocoapods-only release until that's sorted out.
+  path_provider_foundation: 2.4.1
 
 dev_dependencies:
   flutter_test:
