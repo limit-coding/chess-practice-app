@@ -1,7 +1,10 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../xiangqi/fen.dart';
 import '../xiangqi/piece.dart';
+import '../xiangqi/xq_move.dart';
 
 /// A 9×10 Xiangqi board. Red's side (`y` 0-4) renders at the bottom, Black's
 /// (`y` 5-9) at the top — canvas `y` increases downward, so painting flips
@@ -18,6 +21,7 @@ class XiangqiBoardView extends StatelessWidget {
     this.selected,
     this.legalDestinations = const [],
     this.lastMove,
+    this.hintMove,
     this.onTapCell,
   });
 
@@ -25,6 +29,11 @@ class XiangqiBoardView extends StatelessWidget {
   final (int, int)? selected;
   final List<(int, int)> legalDestinations;
   final (int, int)? lastMove;
+
+  /// Drawn as dashed "ghost" rings on the from/to squares — review's way of
+  /// pointing at an engine-recommended move (see BoardView.hintMove for the
+  /// Gomoku equivalent).
+  final XqMove? hintMove;
   final void Function(int x, int y)? onTapCell;
 
   /// Maps a tap position within a board of [width]x[height] logical pixels
@@ -64,6 +73,7 @@ class XiangqiBoardView extends StatelessWidget {
                 selected: selected,
                 legalDestinations: legalDestinations,
                 lastMove: lastMove,
+                hintMove: hintMove,
               ),
             ),
           ),
@@ -79,12 +89,14 @@ class _XiangqiBoardPainter extends CustomPainter {
     required this.selected,
     required this.legalDestinations,
     required this.lastMove,
+    required this.hintMove,
   });
 
   final List<List<XqPiece?>> squares;
   final (int, int)? selected;
   final List<(int, int)> legalDestinations;
   final (int, int)? lastMove;
+  final XqMove? hintMove;
 
   static const _boardColor = Color(0xFFE8CE9A);
   static const _lineColor = Color(0xFF3E2A15);
@@ -191,6 +203,26 @@ class _XiangqiBoardPainter extends CustomPainter {
         Paint()..color = Colors.blueAccent,
       );
     }
+
+    if (hintMove != null) {
+      final dashPaint = Paint()
+        ..color = Colors.blueAccent
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.5;
+      _drawDashedCircle(canvas, _pos(hintMove!.fromX, hintMove!.fromY, cell), pieceRadius, dashPaint);
+      _drawDashedCircle(canvas, _pos(hintMove!.toX, hintMove!.toY, cell), pieceRadius, dashPaint);
+    }
+  }
+
+  void _drawDashedCircle(Canvas canvas, Offset center, double radius, Paint paint) {
+    const dashCount = 14;
+    const dashFraction = 0.6;
+    const anglePerDash = 2 * math.pi / dashCount;
+    final sweep = anglePerDash * dashFraction;
+    final rect = Rect.fromCircle(center: center, radius: radius);
+    for (var i = 0; i < dashCount; i++) {
+      canvas.drawArc(rect, i * anglePerDash, sweep, false, paint);
+    }
   }
 
   static String _label(XqPiece piece) {
@@ -211,6 +243,7 @@ class _XiangqiBoardPainter extends CustomPainter {
     return oldDelegate.squares != squares ||
         oldDelegate.selected != selected ||
         oldDelegate.legalDestinations != legalDestinations ||
-        oldDelegate.lastMove != lastMove;
+        oldDelegate.lastMove != lastMove ||
+        oldDelegate.hintMove != hintMove;
   }
 }

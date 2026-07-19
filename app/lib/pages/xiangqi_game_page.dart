@@ -9,7 +9,9 @@ import '../game/difficulty.dart';
 import '../widgets/xiangqi_board_view.dart';
 import '../xiangqi/piece.dart';
 import '../xiangqi/xiangqi_game.dart';
+import '../xiangqi/xq_game_record.dart';
 import '../xiangqi/xq_move.dart';
+import 'xiangqi_review_page.dart';
 
 class XiangqiGamePage extends StatefulWidget {
   const XiangqiGamePage({super.key});
@@ -19,6 +21,8 @@ class XiangqiGamePage extends StatefulWidget {
 }
 
 class _XiangqiGamePageState extends State<XiangqiGamePage> {
+  static const _store = XqGameRecordStore();
+
   XiangqiGame? _game;
   Difficulty _difficulty = Difficulty.normal;
   Side _humanSide = Side.red;
@@ -26,6 +30,8 @@ class _XiangqiGamePageState extends State<XiangqiGamePage> {
   bool _busy = false;
   bool _engineReady = false;
   String? _status;
+  DateTime? _startedAt;
+  XqGameRecord? _lastRecord;
 
   bool get _inGame => _game != null;
 
@@ -50,6 +56,8 @@ class _XiangqiGamePageState extends State<XiangqiGamePage> {
     setState(() {
       _game = XiangqiGame();
       _selected = null;
+      _startedAt = DateTime.now();
+      _lastRecord = null;
       _busy = false;
       _status = _turnStatus();
     });
@@ -87,12 +95,20 @@ class _XiangqiGamePageState extends State<XiangqiGamePage> {
       _status = game.isOver ? null : _turnStatus();
     });
 
-    if (game.isOver) _finishGame();
+    if (game.isOver) await _finishGame();
   }
 
-  void _finishGame() {
+  Future<void> _finishGame() async {
     final game = _game!;
+    final record = XqGameRecord.fromGame(
+      game,
+      difficulty: _difficulty,
+      startedAt: _startedAt!,
+      humanSide: _humanSide,
+    );
+    await _store.save(record);
     setState(() {
+      _lastRecord = record;
       _status = switch (game.winner) {
         null => '和棋。', // unreachable in Xiangqi (no legal moves = a loss), kept for completeness
         final w when w == _humanSide => '你赢了！',
@@ -101,7 +117,26 @@ class _XiangqiGamePageState extends State<XiangqiGamePage> {
     });
   }
 
-  void _onTapCell(int x, int y) {
+  Future<void> _openReview() async {
+    final record = _lastRecord;
+    if (record == null) return;
+    final result = await Navigator.of(context).push<XqResumeResult>(
+      MaterialPageRoute(builder: (_) => XiangqiReviewPage(record: record)),
+    );
+    if (result == null || !mounted) return;
+    setState(() {
+      _game = result.game;
+      _difficulty = record.difficulty;
+      _humanSide = record.humanSide;
+      _selected = null;
+      _startedAt = DateTime.now();
+      _lastRecord = null;
+      _busy = false;
+      _status = _turnStatus();
+    });
+  }
+
+  Future<void> _onTapCell(int x, int y) async {
     final game = _game;
     if (game == null || _busy || game.isOver || game.turn != _humanSide) return;
 
@@ -114,9 +149,9 @@ class _XiangqiGamePageState extends State<XiangqiGamePage> {
           _selected = null;
         });
         if (game.isOver) {
-          _finishGame();
+          await _finishGame();
         } else {
-          _maybeEngineMove();
+          await _maybeEngineMove();
         }
         return;
       }
@@ -177,25 +212,40 @@ class _XiangqiGamePageState extends State<XiangqiGamePage> {
               else
                 const Spacer(),
               const SizedBox(height: 8),
-              FilledButton(
-                onPressed: _busy
-                    ? null
-                    : () {
-                        if (game == null || game.isOver) {
-                          _startNewGame();
-                        } else {
-                          setState(() {
-                            _game = null;
-                            _selected = null;
-                            _status = null;
-                          });
-                        }
-                      },
-                child: Text(game == null
-                    ? '开始对局'
-                    : game.isOver
-                        ? '再来一局'
-                        : '放弃对局'),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (game != null && game.isOver && _lastRecord != null)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: OutlinedButton(
+                        onPressed: _openReview,
+                        child: const Text('复盘'),
+                      ),
+                    ),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: _busy
+                          ? null
+                          : () {
+                              if (game == null || game.isOver) {
+                                _startNewGame();
+                              } else {
+                                setState(() {
+                                  _game = null;
+                                  _selected = null;
+                                  _status = null;
+                                });
+                              }
+                            },
+                      child: Text(game == null
+                          ? '开始对局'
+                          : game.isOver
+                              ? '再来一局'
+                              : '放弃对局'),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
