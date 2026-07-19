@@ -1,6 +1,10 @@
 // Links the Rapfi engine static library (built by native/wrapper/CMakeLists.txt)
 // into the Runner. -force_load keeps the bridge symbols alive so Dart FFI can
 // resolve them via DynamicLibrary.process() at runtime.
+// Release strips all symbols by default, which breaks Dart FFI's
+// dlsym(RTLD_DEFAULT, ...) lookup at runtime. Keep global symbols.
+STRIP_STYLE = non-global
+
 LIBRARY_SEARCH_PATHS[sdk=iphoneos*] = $(inherited) $(SRCROOT)/../../native/wrapper/build-ios
 LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*] = $(inherited) $(SRCROOT)/../../native/wrapper/build-ios-sim
 OTHER_LDFLAGS[sdk=iphoneos*] = $(inherited) -force_load $(SRCROOT)/../../native/wrapper/build-ios/librapfi_core.a $(SRCROOT)/../../native/wrapper/build-ios/lz4/liblz4.a -lc++

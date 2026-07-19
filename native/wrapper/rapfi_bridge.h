@@ -18,21 +18,27 @@
 #ifndef RAPFI_BRIDGE_H
 #define RAPFI_BRIDGE_H
 
+/* Callers resolve these via dlsym (Dart FFI DynamicLibrary.process()), so
+ * nothing references them at link time: 'used' stops the linker's dead-code
+ * stripping from discarding them, 'default' visibility keeps them in the
+ * dynamic symbol table. */
+#define RAPFI_EXPORT __attribute__((used)) __attribute__((visibility("default")))
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /* Start the engine thread. Safe to call once per process. Returns 0 on
  * success, nonzero if the engine is already running. */
-int rapfi_start(void);
+RAPFI_EXPORT int rapfi_start(void);
 
 /* Send one protocol line to the engine ('\n' is appended automatically). */
-void rapfi_send(const char *line);
+RAPFI_EXPORT void rapfi_send(const char *line);
 
 /* Block until the engine emits one output line or timeout_ms elapses.
  * The line (without trailing '\n') is copied into buf, NUL-terminated.
  * Returns the line length, or -1 on timeout, or -2 if buf is too small. */
-int rapfi_recv(char *buf, int buf_capacity, int timeout_ms);
+RAPFI_EXPORT int rapfi_recv(char *buf, int buf_capacity, int timeout_ms);
 
 #ifdef __cplusplus
 }
