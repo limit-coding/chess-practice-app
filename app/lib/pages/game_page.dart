@@ -8,6 +8,7 @@ import '../game/game_record.dart';
 import '../game/game_state.dart';
 import '../game/stone.dart';
 import '../widgets/board_view.dart';
+import 'review_page.dart';
 
 class GamePage extends StatefulWidget {
   const GamePage({super.key});
@@ -25,6 +26,7 @@ class _GamePageState extends State<GamePage> {
   DateTime? _startedAt;
   bool _busy = false;
   String? _status;
+  GameRecord? _lastRecord;
 
   bool get _inGame => _game != null;
 
@@ -41,6 +43,7 @@ class _GamePageState extends State<GamePage> {
     setState(() {
       _game = GomokuGame(boardSize: _boardSize);
       _startedAt = DateTime.now();
+      _lastRecord = null;
       _busy = false;
       _status = '轮到你落子（黑棋）';
     });
@@ -92,17 +95,36 @@ class _GamePageState extends State<GamePage> {
 
   Future<void> _finishGame() async {
     final game = _game!;
-    await _store.save(GameRecord.fromGame(
+    final record = GameRecord.fromGame(
       game,
       difficulty: _difficulty,
       startedAt: _startedAt!,
-    ));
+    );
+    await _store.save(record);
     setState(() {
+      _lastRecord = record;
       _status = switch (game.winner) {
         Stone.black => '你赢了！',
         Stone.white => '引擎赢了。',
         null => '平局。',
       };
+    });
+  }
+
+  Future<void> _openReview() async {
+    final record = _lastRecord;
+    if (record == null) return;
+    final result = await Navigator.of(context).push<ResumeResult>(
+      MaterialPageRoute(builder: (_) => ReviewPage(record: record)),
+    );
+    if (result == null || !mounted) return;
+    setState(() {
+      _game = result.game;
+      _difficulty = record.difficulty;
+      _startedAt = DateTime.now();
+      _lastRecord = null;
+      _busy = false;
+      _status = '轮到你落子（黑棋）';
     });
   }
 
@@ -141,24 +163,39 @@ class _GamePageState extends State<GamePage> {
               else
                 const Spacer(),
               const SizedBox(height: 8),
-              FilledButton(
-                onPressed: _busy
-                    ? null
-                    : () {
-                        if (game == null || game.isOver) {
-                          _startNewGame();
-                        } else {
-                          setState(() {
-                            _game = null;
-                            _status = null;
-                          });
-                        }
-                      },
-                child: Text(game == null
-                    ? '开始对局'
-                    : game.isOver
-                        ? '再来一局'
-                        : '放弃对局'),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (game != null && game.isOver && _lastRecord != null)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: OutlinedButton(
+                        onPressed: _openReview,
+                        child: const Text('复盘'),
+                      ),
+                    ),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: _busy
+                          ? null
+                          : () {
+                              if (game == null || game.isOver) {
+                                _startNewGame();
+                              } else {
+                                setState(() {
+                                  _game = null;
+                                  _status = null;
+                                });
+                              }
+                            },
+                      child: Text(game == null
+                          ? '开始对局'
+                          : game.isOver
+                              ? '再来一局'
+                              : '放弃对局'),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

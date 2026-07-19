@@ -8,6 +8,9 @@ import 'dart:isolate';
 
 import 'package:ffi/ffi.dart';
 
+import '../game/move_record.dart';
+import '../game/stone.dart';
+
 typedef _StartC = Int32 Function();
 typedef _StartDart = int Function();
 typedef _SendC = Void Function(Pointer<Utf8>);
@@ -102,6 +105,35 @@ class RapfiEngine {
   /// Sends the human move and returns the engine's reply move.
   Future<(String?, List<String>)> reply(int x, int y) async {
     _send('TURN $x,$y');
+    return _await();
+  }
+
+  /// Adjusts the search budget without restarting the game (no START is
+  /// sent, so the current board position is untouched) — used to restore a
+  /// game's original difficulty after a review pass changed it to
+  /// [reviewThinkMs]/[reviewMaxDepth].
+  void setSearchBudget({required int thinkMs, required int maxDepth}) {
+    _send('INFO timeout_turn $thinkMs');
+    _send('INFO max_depth $maxDepth');
+  }
+
+  /// Rebuilds an arbitrary position via the Gomocup `BOARD` command and lets
+  /// the engine think from there — used by game review (replaying a
+  /// finished game's positions) and by "resume from a hint" (re-syncing the
+  /// engine's board after the human plays a move the live game never took).
+  ///
+  /// [prefix] is the exact move sequence leading to the position, in play
+  /// order. Black always moves first in our games (see [GomokuGame]), so
+  /// the first move is always tagged as color 1 ("self") and the rest
+  /// alternate — the engine only uses this to recover which side is which,
+  /// not to imply anything about who "self" is to us.
+  Future<(String?, List<String>)> setBoard(List<MoveRecord> prefix) async {
+    _send('BOARD');
+    for (final move in prefix) {
+      final color = move.stone == Stone.black ? 1 : 2;
+      _send('${move.x},${move.y},$color');
+    }
+    _send('DONE');
     return _await();
   }
 

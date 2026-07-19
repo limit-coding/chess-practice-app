@@ -18,6 +18,19 @@ class GomokuGame {
   final List<List<Stone?>> board;
   final List<MoveRecord> moves = [];
 
+  /// Rebuilds the board by replaying [moves] from an empty board — used by
+  /// review's "rewind to this position" (step 2.4). Purely local replay, so
+  /// the result is guaranteed to match the original game bit-for-bit; no
+  /// engine round-trip involved.
+  factory GomokuGame.replay(int boardSize, List<MoveRecord> moves) {
+    final game = GomokuGame(boardSize: boardSize);
+    for (final m in moves) {
+      final record = game.play(m.x, m.y);
+      assert(record != null, 'replaying a recorded game must never hit an illegal move');
+    }
+    return game;
+  }
+
   Stone turn = Stone.black;
   Stone? winner;
   List<(int, int)> winningLine = const [];
