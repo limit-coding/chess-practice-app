@@ -3,5 +3,5 @@
 // resolve them via DynamicLibrary.process() at runtime.
 LIBRARY_SEARCH_PATHS[sdk=iphoneos*] = $(inherited) $(SRCROOT)/../../native/wrapper/build-ios
 LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*] = $(inherited) $(SRCROOT)/../../native/wrapper/build-ios-sim
-OTHER_LDFLAGS[sdk=iphoneos*] = $(inherited) -force_load $(SRCROOT)/../../native/wrapper/build-ios/librapfi_core.a -lc++
-OTHER_LDFLAGS[sdk=iphonesimulator*] = $(inherited) -force_load $(SRCROOT)/../../native/wrapper/build-ios-sim/librapfi_core.a -lc++
+OTHER_LDFLAGS[sdk=iphoneos*] = $(inherited) -force_load $(SRCROOT)/../../native/wrapper/build-ios/librapfi_core.a $(SRCROOT)/../../native/wrapper/build-ios/lz4/liblz4.a -lc++
+OTHER_LDFLAGS[sdk=iphonesimulator*] = $(inherited) -force_load $(SRCROOT)/../../native/wrapper/build-ios-sim/librapfi_core.a $(SRCROOT)/../../native/wrapper/build-ios-sim/lz4/liblz4.a -lc++
