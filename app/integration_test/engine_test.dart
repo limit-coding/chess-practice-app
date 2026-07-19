@@ -23,6 +23,8 @@ void main() {
   testWidgets('player move gets an engine reply through FFI', (tester) async {
     await tester.pumpWidget(const ChessPracticeApp());
     await tester.pumpAndSettle();
+    await tester.tap(find.text('五子棋'));
+    await tester.pumpAndSettle();
 
     // Easy difficulty keeps the engine's think time short for the test.
     await tester.tap(find.text('简单'));
@@ -56,6 +58,8 @@ void main() {
   testWidgets('letting the engine open the game plays its first move via FFI',
       (tester) async {
     await tester.pumpWidget(const ChessPracticeApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('五子棋'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('简单'));

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'pages/game_page.dart';
+import 'pages/home_page.dart';
 
 void main() {
   runApp(const ChessPracticeApp());
@@ -14,7 +14,7 @@ class ChessPracticeApp extends StatelessWidget {
     return MaterialApp(
       title: '棋类练习',
       theme: ThemeData(colorSchemeSeed: Colors.brown, useMaterial3: true),
-      home: const GamePage(),
+      home: const HomePage(),
     );
   }
 }
